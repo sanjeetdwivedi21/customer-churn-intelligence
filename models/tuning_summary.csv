@@ -1,0 +1,5 @@
+model,cv_roc_auc,oof_pr_auc,oof_brier,threshold,recall,precision,flagged_pct,net_benefit
+Logistic Regression,0.8466,0.6581,0.1349,0.26,0.809,0.515,41.7,164889.0
+XGBoost,0.8499,0.6677,0.1333,0.21,0.86,0.49,46.5,163955.0
+Gradient Boosting,0.8496,0.6634,0.1338,0.2,0.861,0.488,46.8,162922.0
+Random Forest,0.8476,0.6569,0.1348,0.28,0.803,0.525,40.6,160872.0

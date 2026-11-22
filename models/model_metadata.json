@@ -1,0 +1,41 @@
+{
+  "model_name": "Logistic Regression",
+  "best_params": {
+    "model__C": 21.42302175774105
+  },
+  "threshold": 0.26,
+  "risk_thresholds": {
+    "medium": 0.26,
+    "high": 0.5
+  },
+  "assumptions": {
+    "offer_cost": 50.0,
+    "offer_success_rate": 0.25,
+    "value_horizon_months": 12
+  },
+  "selection_tolerance": 0.02,
+  "random_seed": 42,
+  "feature_columns": [
+    "tenure_months",
+    "monthly_charges",
+    "total_charges",
+    "senior_citizen",
+    "has_partner",
+    "has_dependents",
+    "phone_service",
+    "paperless_billing",
+    "multiple_lines",
+    "online_security",
+    "online_backup",
+    "device_protection",
+    "tech_support",
+    "streaming_tv",
+    "streaming_movies",
+    "autopay",
+    "contract",
+    "internet_service",
+    "payment_method"
+  ],
+  "trained_on_rows": 5634,
+  "trained_at_utc": "2026-11-22T22:30:23+00:00"
+}
