@@ -8,5 +8,8 @@ RAW_CSV_PATH = PROJECT_ROOT / "data" / "raw" / "telco_churn.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 DB_PATH = PROJECT_ROOT / "db" / "churn.db"
 SQL_DIR = PROJECT_ROOT / "sql"
+MODELS_DIR = PROJECT_ROOT / "models"
+REPORTS_DIR = PROJECT_ROOT / "reports"
 
-RANDOM_SEED = 42  # used from Phase 4 onward for reproducible splits and models
+RANDOM_SEED = 42   # used for splits and models, so results are reproducible
+TEST_SIZE = 0.2    # 20% of customers are held out and untouched until Phase 5
