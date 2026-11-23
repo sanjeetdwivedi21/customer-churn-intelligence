@@ -111,7 +111,8 @@ def describe_feature(feature: str, value) -> str:
     monthly_charges and total_charges are not model features anymore, so they are not described.
     """
     if feature == "tenure_months":
-        return f"Tenure of {int(value)} months"
+        months = int(value)
+        return f"Tenure of {months} month" + ("" if months == 1 else "s")
     if feature == "contract":
         return f"{value} contract"
     if feature == "internet_service":
