@@ -1,11 +1,11 @@
 {
   "model_name": "Logistic Regression",
   "best_params": {
-    "model__C": 21.42302175774105
+    "model__C": 0.0745934328572655
   },
-  "threshold": 0.26,
+  "threshold": 0.27,
   "risk_thresholds": {
-    "medium": 0.26,
+    "medium": 0.27,
     "high": 0.5
   },
   "assumptions": {
@@ -17,8 +17,6 @@
   "random_seed": 42,
   "feature_columns": [
     "tenure_months",
-    "monthly_charges",
-    "total_charges",
     "senior_citizen",
     "has_partner",
     "has_dependents",
@@ -37,5 +35,5 @@
     "payment_method"
   ],
   "trained_on_rows": 5634,
-  "trained_at_utc": "2026-11-22T22:30:23+00:00"
+  "trained_at_utc": "2026-11-23T07:17:46+00:00"
 }
