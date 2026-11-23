@@ -11,8 +11,16 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.config import MODELS_DIR, PROCESSED_DIR  # noqa: E402
+from src.config import DB_PATH, MODELS_DIR, PROCESSED_DIR  # noqa: E402
 from src.data_preprocessing import load_features  # noqa: E402
+
+
+def ensure_database() -> None:
+    """Build the SQLite database from the raw CSV if it is missing (for example on a fresh deploy)."""
+    if not DB_PATH.exists():
+        from src.db_setup import main as build_database
+        if build_database() != 0:
+            raise RuntimeError("Could not build the database from data/raw/telco_churn.csv")
 
 
 @st.cache_data(show_spinner="Loading data...")
@@ -27,7 +35,8 @@ def load_dashboard_data() -> tuple[pd.DataFrame, pd.DataFrame, dict]:
                 f"{path.name} not found. Run: python -m src.model_tuning, "
                 "then python -m src.explainability")
 
-    features = load_features().rename(columns={"customer_id": "customer_id"})
+    ensure_database()
+    features = load_features()
     scored = pd.read_csv(scored_path).drop(columns=["monthly_charges"])
     data = features.merge(scored, on="customer_id", how="inner", validate="one_to_one")
     if len(data) != len(features):
