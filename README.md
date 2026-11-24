@@ -1,5 +1,7 @@
 # AI-Powered Customer Churn Intelligence System
 
+**Live demo:** https://customer-churn-ai-analytics.streamlit.app/
+
 An end-to-end project that predicts which telecom customers are likely to leave, explains why, and turns the predictions into a prioritised retention contact list. It covers SQL, exploratory analysis, machine learning, explainable AI (SHAP), retention recommendations and an interactive Streamlit dashboard.
 
 ![Executive overview](docs/screenshots/01_executive.png)
@@ -54,6 +56,8 @@ All figures come from the IBM Telco Customer Churn dataset (7,043 customers, 1,8
 ### Business assumptions (not from the dataset)
 
 The dataset has no campaign data, so these are editable assumptions in `src/config.py`: offer cost $50, offer success rate 25%, and a saved customer is worth 12 months of their monthly charge. Net benefit figures change with them.
+
+> The demo runs on Streamlit Community Cloud. If it has been idle it may be asleep: click "Yes, get this app back up" and wait a few seconds.
 
 ## Screenshots
 
@@ -158,4 +162,3 @@ API keys are read from environment variables and never stored in code. `.env` is
 ## Data and credits
 
 IBM Telco Customer Churn sample dataset (publicly available, for example on Kaggle). This is a learning and portfolio project, not production advice.
-
