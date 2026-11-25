@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from dashboard import upload_tab  # noqa: E402
 from dashboard import whatif_tab  # noqa: E402
+from dashboard import campaign_tab  # noqa: E402
 
 import pandas as pd
 import streamlit as st
@@ -151,9 +152,9 @@ st.markdown('<div class="hero"><h1>📉 Customer Churn Intelligence</h1>'
             'Scores come from a statistical model and show associations, not causes.</p></div>',
             unsafe_allow_html=True)
 
-tab_a, tab_b, tab_c, tab_d, tab_e, tab_f, tab_g = st.tabs(
+tab_a, tab_b, tab_c, tab_d, tab_e, tab_f, tab_g, tab_h = st.tabs(
     ["📊 Executive Overview", "🔍 Customer Analytics", "🎯 Churn Prediction",
-     "🧠 Explainable AI", "💡 AI Retention Advisor", "📤 Upload & Score", "🧪 What-if"])
+     "🧠 Explainable AI", "💡 AI Retention Advisor", "📤 Upload & Score", "🧪 What-if", "💰 Campaign"])
 
 
 def customer_facts(customer_id: str) -> dict:
@@ -305,3 +306,7 @@ with tab_f:
 # ---------- G. What-if ----------
 with tab_g:
     whatif_tab.render(data, chosen)
+
+# ---------- H. Campaign simulator ----------
+with tab_h:
+    campaign_tab.render(data, meta)
