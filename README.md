@@ -1,6 +1,6 @@
 # AI-Powered Customer Churn Intelligence System
 
-![tests](https://github.com/<your-username>/customer-churn-intelligence/actions/workflows/tests.yml/badge.svg)
+![tests](https://github.com/sanjeetdwivedi21/customer-churn-intelligence/actions/workflows/tests.yml/badge.svg)
 
 **Live demo:** https://customer-churn-ai-analytics.streamlit.app/
 
