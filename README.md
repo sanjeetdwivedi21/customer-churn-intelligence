@@ -1,8 +1,12 @@
 # AI-Powered Customer Churn Intelligence System
 
+![tests](https://github.com/<your-username>/customer-churn-intelligence/actions/workflows/tests.yml/badge.svg)
+
 **Live demo:** https://customer-churn-ai-analytics.streamlit.app/
 
-An end-to-end project that predicts which telecom customers are likely to leave, explains why, and turns the predictions into a prioritised retention contact list. It covers SQL, exploratory analysis, machine learning, explainable AI (SHAP), retention recommendations and an interactive Streamlit dashboard.
+An end-to-end project that predicts which telecom customers are likely to leave, explains why, and turns the predictions into a prioritised retention contact list. It covers SQL, exploratory analysis, machine learning, explainable AI (SHAP), retention recommendations, business simulators and an interactive Streamlit dashboard.
+
+> The demo runs on Streamlit Community Cloud. If it has been idle it may be asleep: click "Yes, get this app back up" and wait a few seconds.
 
 ![Executive overview](docs/screenshots/01_executive.png)
 
@@ -14,7 +18,7 @@ Knowing that customers churn is not enough. The business needs to know:
 - What drives churn in the model
 - Which customers to contact first
 - Which retention actions to prioritise
-- How much revenue is at risk
+- How much revenue is at risk, and what a campaign would be worth
 
 This project answers those questions with data, and is explicit about what the data cannot tell us.
 
@@ -55,11 +59,23 @@ All figures come from the IBM Telco Customer Churn dataset (7,043 customers, 1,8
 
 ### Business assumptions (not from the dataset)
 
-The dataset has no campaign data, so these are editable assumptions in `src/config.py`: offer cost $50, offer success rate 25%, and a saved customer is worth 12 months of their monthly charge. Net benefit figures change with them.
+The dataset has no campaign data, so these are editable assumptions in `src/config.py`: offer cost $50, offer success rate 25%, and a saved customer is worth 12 months of their monthly charge. Net benefit figures change with them. The **Campaign** tab lets you change them with sliders and see the effect.
 
-> The demo runs on Streamlit Community Cloud. If it has been idle it may be asleep: click "Yes, get this app back up" and wait a few seconds.
+## Dashboard
 
-## Screenshots
+Nine tabs, all reading saved model outputs (nothing is trained when the dashboard runs):
+
+| Tab | What it does |
+|---|---|
+| Executive Overview | KPIs, risk levels, revenue at risk by segment, gain curve |
+| Customer Analytics | Contract x tenure heatmap, churn by service and payment method, tenure curve |
+| Churn Prediction | Probability gauge, risk level and main factors for one customer |
+| Explainable AI | Global SHAP importance and a per-customer waterfall |
+| AI Retention Advisor | Recommendation for a customer and a downloadable contact list |
+| Upload & Score | Upload a CSV of customers in the Telco format and get scores, explanations and a report |
+| What-if | Change a customer's contract, payment method or add-ons and see how the model's prediction moves |
+| Campaign | Change offer cost, success rate, value horizon and threshold and see the estimated net benefit |
+| Model Card | What the model is, how it was built, how well it works and where not to trust it |
 
 | | |
 |---|---|
@@ -67,6 +83,14 @@ The dataset has no campaign data, so these are editable assumptions in `src/conf
 | Customer analytics | Explainable AI (SHAP) |
 | ![Advisor](docs/screenshots/05_advisor.png) | ![Gain curve](docs/screenshots/01b_executive_gain_curve.png) |
 | Retention advisor | Gain curve |
+
+### Upload & Score
+
+The model was trained on the Telco dataset, so an uploaded CSV needs the same columns (the tab offers a sample file to download). Files are validated strictly: missing columns, unexpected values, duplicate IDs and bad numbers stop the upload with a clear message listing every problem. Up to 10,000 customers are accepted. Scoring uses the saved model, so nothing is retrained. This works for new customers in the Telco format; a dataset from another industry would need its own features and retraining.
+
+### What-if
+
+The what-if tab shows what the **model** predicts if a customer's setup changed, plus a ranked list of single changes. It is not a promise of what would happen in reality: the data shows associations, not causes, and monthly charges are kept fixed.
 
 ## Architecture
 
@@ -81,16 +105,18 @@ Training code (`model_tuning.py`) and inference code (`prediction.py`) are separ
 
 ```
 customer-churn-intelligence/
+├── .github/workflows/     CI: tests run on every push
 ├── data/raw/              original dataset (never edited)
 ├── data/processed/        scored customers and SHAP values
 ├── sql/                   table creation, cleaning, business queries, segmentation
 ├── notebooks/             EDA notebook
 ├── src/                   config, preprocessing, features, training, tuning, evaluation,
-│                          prediction, explainability, recommendations
+│                          prediction, explainability, recommendations, business metrics,
+│                          campaign, what-if, batch scoring, upload validation, model card
 ├── models/                saved pipeline, metadata, tuning results
 ├── reports/               model evaluation, executive summary, figures
-├── dashboard/             Streamlit app, data loader, charts
-├── tests/                 pytest unit and integration tests
+├── dashboard/             Streamlit app and one module per tab
+├── tests/                 pytest unit and integration tests (74)
 └── docs/                  architecture and screenshots
 ```
 
@@ -99,7 +125,7 @@ customer-churn-intelligence/
 Requires Python 3.12 (3.10 to 3.12 should also work).
 
 ```powershell
-git clone <your-repo-url>
+git clone https://github.com/<your-username>/customer-churn-intelligence.git
 cd customer-churn-intelligence
 python -m venv venv
 .\venv\Scripts\Activate.ps1          # macOS/Linux: source venv/bin/activate
@@ -118,11 +144,18 @@ python -m src.model_tuning           # tune, choose model and threshold (several
 python -m src.model_evaluation       # evaluate once on the test set, write the report
 python -m src.explainability         # SHAP values, scored customers, figures
 python -m src.ai_recommendations     # retention recommendations (works without an API key)
-python -m pytest -q                  # 36 tests
+python -m src.learning_curve         # does more data help? (optional)
+python -m pytest -q                  # 74 tests
 python -m streamlit run dashboard/app.py
 ```
 
+The saved model, scores and SHAP values are in the repository, so you can run the dashboard right after installing. The dashboard rebuilds the SQLite database from the raw CSV if it is missing.
+
 The EDA lives in `notebooks/01_eda.py` (VS Code cells) and `notebooks/01_eda.ipynb`.
+
+## Testing and CI
+
+74 tests cover feature engineering, business metrics, risk tiers, recommendation rules, upload validation, what-if options, the campaign simulator, the model card and integration checks on the real database and saved artifacts (for example, uploading the original dataset must reproduce the saved scores, and the simulator must reproduce the test-set results in `reports/model_evaluation.md`). A GitHub Actions workflow builds the database and runs them on every push.
 
 ## Retention recommendations and the optional LLM
 
@@ -140,24 +173,28 @@ API keys are read from environment variables and never stored in code. `.env` is
 - **Collinear features removed.** `monthly_charges` and `total_charges` were dropped from the model after SHAP showed misleading coefficients (they duplicate internet type, add-ons and tenure). Performance did not change (test ROC-AUC 0.841 to 0.840). `monthly_charges` is still used for revenue-at-risk and business metrics.
 - **No class weights.** Probabilities stay calibrated, which matters because revenue at risk is probability times monthly charge. The threshold handles the imbalance instead.
 - **Simplest model wins ties.** Logistic Regression was chosen because its net benefit was within 2% of the best model, and it is the easiest to explain.
+- **More data:** a learning curve on the training set (`reports/figures/18_learning_curve.png`) shows Logistic Regression has flattened at about 0.845 ROC-AUC, while Gradient Boosting is still improving slowly (0.8485 at about 4,500 rows). More rows could help boosting models a little; larger gains would likely need new features such as usage or complaint history.
 
 ## Limitations
 
 - The data shows associations, not causes. SHAP explains what the model does, not why customers leave.
 - The dataset is a snapshot. It has no usage logs, complaints or price-change history, so recommendations cannot reference them.
 - Offer cost, success rate and value horizon are assumptions.
-- Scores and revenue at risk on the dashboard are in-sample for the 80% of customers the model trained on, so they are slightly optimistic. The honest numbers are the test-set results above and in `reports/model_evaluation.md`.
+- Scores and revenue at risk on the dashboard are in-sample for the 80% of customers the model trained on, so they are slightly optimistic. The honest numbers are the test-set results above, the Model Card and `reports/model_evaluation.md`.
 - The test set has 1,409 customers, so metrics carry roughly +/- 0.02 of sampling noise.
+- Accuracy on other companies' customers is not guaranteed. Performance for different customer groups (for example senior citizens) has not been evaluated yet.
+- Do not upload real personal customer data to the public demo.
 
 ## Future improvements
 
-- Time-based data and survival analysis (when customers churn, not only whether)
+- Per-group performance and calibration checks
+- Survival analysis (when customers churn, not only whether) and a customer lifetime value estimate
+- Customer segments (clustering) with named personas
 - Uplift modelling to find customers who respond to an offer, not just those likely to leave
-- A/B test of retention actions to measure the real success rate
-- Probability calibration and cost-sensitive threshold search on real campaign costs
+- An A/B test of retention actions to measure the real success rate
 - Model monitoring for drift and scheduled retraining
-- FastAPI service for real-time scoring, and a PostgreSQL version of the SQL layer
-- Dark theme and role-based views for the dashboard
+- FastAPI service for real-time scoring, Docker, and a PostgreSQL version of the SQL layer
+- New data such as usage, complaints and price changes
 
 ## Data and credits
 
