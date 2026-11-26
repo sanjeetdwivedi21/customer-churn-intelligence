@@ -25,6 +25,7 @@ from dashboard import charts  # noqa: E402
 from dashboard import model_card_tab  # noqa: E402
 from dashboard import upload_tab  # noqa: E402
 from dashboard import whatif_tab  # noqa: E402
+from dashboard import subgroups_tab  # noqa: E402
 from dashboard.data import load_dashboard_data  # noqa: E402
 from src.ai_recommendations import generate_recommendation, load_env  # noqa: E402
 from src.explainability import describe_feature  # noqa: E402
@@ -508,10 +509,10 @@ st.markdown(
     f'{ICON_EXPORT}<span>Export Report</span></a>'
     f'</div>', unsafe_allow_html=True)
 
-tab_a, tab_b, tab_c, tab_d, tab_e, tab_f, tab_g, tab_h, tab_i = st.tabs(
+tab_a, tab_b, tab_c, tab_d, tab_e, tab_f, tab_g, tab_h, tab_i, tab_j = st.tabs(
     ["Executive Overview", "Customer Analytics", "Churn Prediction",
      "Explainable AI", "AI Retention Advisor", "Upload & Score",
-     "What-if", "Campaign", "Model Card"])
+     "What-if", "Campaign", "Model Card", "Subgroups"])
 
 
 def customer_facts(customer_id: str) -> dict:
@@ -696,3 +697,7 @@ with tab_h:
 # ---------- I. Model card ----------
 with tab_i:
     model_card_tab.render(data, meta)
+
+# ---------- J. Subgroups ----------
+with tab_j:
+    subgroups_tab.render(data, meta)

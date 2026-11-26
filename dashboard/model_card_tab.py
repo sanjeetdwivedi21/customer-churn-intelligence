@@ -105,7 +105,8 @@ def render(data: pd.DataFrame, metadata: dict) -> None:
         "- Scores on the dashboard are in-sample for the customers the model trained on, so they "
         "are slightly optimistic. The numbers above use customers it never saw.\n"
         "- Senior citizen status is a model input; gender is not. Performance for different "
-        "customer groups has not been evaluated in this version.\n"
+        "customer groups is in the Subgroups tab. Groups are small, so differences are often "
+        "within noise, and that tab is a descriptive check, not a fairness certification.\n"
         "- Offer cost, success rate and value horizon are assumptions. Test a campaign on a "
         "sample with a control group before relying on the estimated benefit.\n"
         "- A person should review recommendations before any customer is contacted.")

@@ -63,7 +63,7 @@ The dataset has no campaign data, so these are editable assumptions in `src/conf
 
 ## Dashboard
 
-Nine tabs, all reading saved model outputs (nothing is trained when the dashboard runs):
+Ten tabs, all reading saved model outputs (nothing is trained when the dashboard runs):
 
 | Tab | What it does |
 |---|---|
@@ -76,6 +76,7 @@ Nine tabs, all reading saved model outputs (nothing is trained when the dashboar
 | What-if | Change a customer's contract, payment method or add-ons and see how the model's prediction moves |
 | Campaign | Change offer cost, success rate, value horizon and threshold and see the estimated net benefit |
 | Model Card | What the model is, how it was built, how well it works and where not to trust it |
+| Subgroups | Recall, precision and calibration for groups such as senior citizens, contract types and tenure bands, with 95% intervals |
 
 | | |
 |---|---|
@@ -112,11 +113,12 @@ customer-churn-intelligence/
 ├── notebooks/             EDA notebook
 ├── src/                   config, preprocessing, features, training, tuning, evaluation,
 │                          prediction, explainability, recommendations, business metrics,
-│                          campaign, what-if, batch scoring, upload validation, model card
+│                          campaign, what-if, batch scoring, upload validation, model card,
+│                          subgroups
 ├── models/                saved pipeline, metadata, tuning results
 ├── reports/               model evaluation, executive summary, figures
 ├── dashboard/             Streamlit app and one module per tab
-├── tests/                 pytest unit and integration tests (74)
+├── tests/                 pytest unit and integration tests (81)
 └── docs/                  architecture and screenshots
 ```
 
@@ -145,7 +147,7 @@ python -m src.model_evaluation       # evaluate once on the test set, write the 
 python -m src.explainability         # SHAP values, scored customers, figures
 python -m src.ai_recommendations     # retention recommendations (works without an API key)
 python -m src.learning_curve         # does more data help? (optional)
-python -m pytest -q                  # 74 tests
+python -m pytest -q                  # 81 tests
 python -m streamlit run dashboard/app.py
 ```
 
@@ -155,7 +157,7 @@ The EDA lives in `notebooks/01_eda.py` (VS Code cells) and `notebooks/01_eda.ipy
 
 ## Testing and CI
 
-74 tests cover feature engineering, business metrics, risk tiers, recommendation rules, upload validation, what-if options, the campaign simulator, the model card and integration checks on the real database and saved artifacts (for example, uploading the original dataset must reproduce the saved scores, and the simulator must reproduce the test-set results in `reports/model_evaluation.md`). A GitHub Actions workflow builds the database and runs them on every push.
+81 tests cover feature engineering, business metrics, risk tiers, recommendation rules, upload validation, what-if options, the campaign simulator, the model card, subgroup metrics and integration checks on the real database and saved artifacts (for example, uploading the original dataset must reproduce the saved scores, and the simulator must reproduce the test-set results in `reports/model_evaluation.md`). A GitHub Actions workflow builds the database and runs them on every push.
 
 ## Retention recommendations and the optional LLM
 
@@ -182,12 +184,11 @@ API keys are read from environment variables and never stored in code. `.env` is
 - Offer cost, success rate and value horizon are assumptions.
 - Scores and revenue at risk on the dashboard are in-sample for the 80% of customers the model trained on, so they are slightly optimistic. The honest numbers are the test-set results above, the Model Card and `reports/model_evaluation.md`.
 - The test set has 1,409 customers, so metrics carry roughly +/- 0.02 of sampling noise.
-- Accuracy on other companies' customers is not guaranteed. Performance for different customer groups (for example senior citizens) has not been evaluated yet.
+- Accuracy on other companies' customers is not guaranteed. Group-level performance is shown in the Subgroups tab, but groups in the test set are small, so many differences are within noise. It is a descriptive check, not a fairness certification.
 - Do not upload real personal customer data to the public demo.
 
 ## Future improvements
 
-- Per-group performance and calibration checks
 - Survival analysis (when customers churn, not only whether) and a customer lifetime value estimate
 - Customer segments (clustering) with named personas
 - Uplift modelling to find customers who respond to an offer, not just those likely to leave
