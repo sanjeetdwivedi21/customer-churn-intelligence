@@ -1,0 +1,26 @@
+{
+  "Logistic Regression": {
+    "model__C": 0.0745934328572655
+  },
+  "Random Forest": {
+    "model__max_depth": 9,
+    "model__max_features": 0.3,
+    "model__min_samples_leaf": 21
+  },
+  "Gradient Boosting": {
+    "model__learning_rate": 0.022544116997360492,
+    "model__max_depth": 2,
+    "model__min_samples_leaf": 33,
+    "model__n_estimators": 316,
+    "model__subsample": 0.7123738038749523
+  },
+  "XGBoost": {
+    "model__colsample_bytree": 0.6399899663272012,
+    "model__learning_rate": 0.03958189513876493,
+    "model__max_depth": 2,
+    "model__min_child_weight": 4,
+    "model__n_estimators": 459,
+    "model__reg_lambda": 6.813099824138591,
+    "model__subsample": 0.608233797718321
+  }
+}

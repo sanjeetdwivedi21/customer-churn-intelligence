@@ -1,6 +1,6 @@
 # AI-Powered Customer Churn Intelligence System
 
-![tests](https://github.com/sanjeetdwivedi21/customer-churn-intelligence/actions/workflows/tests.yml/badge.svg)
+![tests](https://github.com/<your-username>/customer-churn-intelligence/actions/workflows/tests.yml/badge.svg)
 
 **Live demo:** https://customer-churn-ai-analytics.streamlit.app/
 
@@ -63,7 +63,7 @@ The dataset has no campaign data, so these are editable assumptions in `src/conf
 
 ## Dashboard
 
-Ten tabs, all reading saved model outputs (nothing is trained when the dashboard runs):
+Eleven tabs, all reading saved model outputs (nothing is trained when the dashboard runs):
 
 | Tab | What it does |
 |---|---|
@@ -77,6 +77,7 @@ Ten tabs, all reading saved model outputs (nothing is trained when the dashboard
 | Campaign | Change offer cost, success rate, value horizon and threshold and see the estimated net benefit |
 | Model Card | What the model is, how it was built, how well it works and where not to trust it |
 | Subgroups | Recall, precision and calibration for groups such as senior citizens, contract types and tenure bands, with 95% intervals |
+| Model Comparison | ROC, precision-recall, calibration and net-benefit curves for all four tuned models, and the rule that picked Logistic Regression |
 
 | | |
 |---|---|
@@ -114,11 +115,11 @@ customer-churn-intelligence/
 ├── src/                   config, preprocessing, features, training, tuning, evaluation,
 │                          prediction, explainability, recommendations, business metrics,
 │                          campaign, what-if, batch scoring, upload validation, model card,
-│                          subgroups
+│                          subgroups, model comparison
 ├── models/                saved pipeline, metadata, tuning results
 ├── reports/               model evaluation, executive summary, figures
 ├── dashboard/             Streamlit app and one module per tab
-├── tests/                 pytest unit and integration tests (81)
+├── tests/                 pytest unit and integration tests (91)
 └── docs/                  architecture and screenshots
 ```
 
@@ -127,7 +128,7 @@ customer-churn-intelligence/
 Requires Python 3.12 (3.10 to 3.12 should also work).
 
 ```powershell
-git clone https://github.com/sanjeetdwivedi21/customer-churn-intelligence
+git clone https://github.com/<your-username>/customer-churn-intelligence.git
 cd customer-churn-intelligence
 python -m venv venv
 .\venv\Scripts\Activate.ps1          # macOS/Linux: source venv/bin/activate
@@ -147,7 +148,7 @@ python -m src.model_evaluation       # evaluate once on the test set, write the 
 python -m src.explainability         # SHAP values, scored customers, figures
 python -m src.ai_recommendations     # retention recommendations (works without an API key)
 python -m src.learning_curve         # does more data help? (optional)
-python -m pytest -q                  # 81 tests
+python -m pytest -q                  # 91 tests
 python -m streamlit run dashboard/app.py
 ```
 
@@ -157,7 +158,7 @@ The EDA lives in `notebooks/01_eda.py` (VS Code cells) and `notebooks/01_eda.ipy
 
 ## Testing and CI
 
-81 tests cover feature engineering, business metrics, risk tiers, recommendation rules, upload validation, what-if options, the campaign simulator, the model card, subgroup metrics and integration checks on the real database and saved artifacts (for example, uploading the original dataset must reproduce the saved scores, and the simulator must reproduce the test-set results in `reports/model_evaluation.md`). A GitHub Actions workflow builds the database and runs them on every push.
+91 tests cover feature engineering, business metrics, risk tiers, recommendation rules, upload validation, what-if options, the campaign simulator, the model card, subgroup metrics, model comparison and integration checks on the real database and saved artifacts (for example, uploading the original dataset must reproduce the saved scores, and the simulator must reproduce the test-set results in `reports/model_evaluation.md`). A GitHub Actions workflow builds the database and runs them on every push.
 
 ## Retention recommendations and the optional LLM
 

@@ -2,6 +2,10 @@
 
 Run from the project root:  python -m src.model_tuning     (takes several minutes)
 Uses the TRAINING set only. The test set is not touched here.
+
+Besides the chosen model it saves every model's out-of-fold predictions
+(models/oof_predictions.csv) and best settings (models/tuning_params.json),
+which the dashboard's Model Comparison tab uses.
 """
 import json
 import logging
@@ -33,6 +37,8 @@ logger = logging.getLogger(__name__)
 
 MODEL_PATH = MODELS_DIR / "final_model.joblib"
 METADATA_PATH = MODELS_DIR / "model_metadata.json"
+OOF_PATH = MODELS_DIR / "oof_predictions.csv"
+PARAMS_PATH = MODELS_DIR / "tuning_params.json"
 
 # Lower number = simpler model. Used only to break near-ties.
 COMPLEXITY = {"Logistic Regression": 1, "Random Forest": 2, "Gradient Boosting": 3, "XGBoost": 3}
@@ -97,7 +103,7 @@ def main() -> int:
         cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_SEED)
         charges = X_train["monthly_charges"]
 
-        fitted, sweeps, rows = {}, {}, []
+        fitted, sweeps, oof_by_model, rows = {}, {}, {}, []
         for name, (model, space) in search_spaces().items():
             logger.info("Tuning %s (%d combinations x %d folds) ...",
                         name, TUNING_ITERATIONS, CV_FOLDS)
@@ -112,7 +118,7 @@ def main() -> int:
             threshold, sweep = best_threshold(y_train, oof, charges)
             at_best = sweep[sweep["threshold"] == threshold].iloc[0]
 
-            fitted[name], sweeps[name] = search.best_estimator_, sweep
+            fitted[name], sweeps[name], oof_by_model[name] = search.best_estimator_, sweep, oof
             rows.append({
                 "model": name,
                 "cv_roc_auc": round(search.best_score_, 4),
@@ -137,6 +143,14 @@ def main() -> int:
         sweeps[chosen].to_csv(MODELS_DIR / "threshold_sweep_oof.csv", index=False)
         summary.drop(columns="best_params").to_csv(MODELS_DIR / "tuning_summary.csv", index=False)
 
+        # Every model's out-of-fold predictions (full precision) for the comparison tab
+        oof_frame = pd.DataFrame({
+            "row_index": X_train.index, "churn": y_train.to_numpy(),
+            "monthly_charges": charges.to_numpy(), **oof_by_model})
+        oof_frame.to_csv(OOF_PATH, index=False)
+        PARAMS_PATH.write_text(json.dumps({r["model"]: r["best_params"] for r in rows}, indent=2),
+                               encoding="utf-8")
+
         metadata = {
             "model_name": chosen,
             "best_params": chosen_row["best_params"],
@@ -157,7 +171,8 @@ def main() -> int:
         print(summary.drop(columns="best_params").to_string(index=False))
         print(f"\nSelected: {chosen} | threshold {threshold:.2f} | "
               f"risk tiers: Medium >= {threshold:.2f}, High >= {high:.2f}")
-        logger.info("Saved %s and %s", MODEL_PATH.name, METADATA_PATH.name)
+        logger.info("Saved %s, %s, %s and %s", MODEL_PATH.name, METADATA_PATH.name,
+                    OOF_PATH.name, PARAMS_PATH.name)
         return 0
     except (FileNotFoundError, ValueError, RuntimeError) as error:
         logger.error("Failed: %s", error)
