@@ -125,7 +125,7 @@ customer-churn-intelligence/
 Requires Python 3.12 (3.10 to 3.12 should also work).
 
 ```powershell
-git clone https://github.com/<your-username>/customer-churn-intelligence.git
+git clone https://github.com/sanjeetdwivedi21/customer-churn-intelligence
 cd customer-churn-intelligence
 python -m venv venv
 .\venv\Scripts\Activate.ps1          # macOS/Linux: source venv/bin/activate
