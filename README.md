@@ -63,7 +63,7 @@ The dataset has no campaign data, so these are editable assumptions in `src/conf
 
 ## Dashboard
 
-Eleven tabs, all reading saved model outputs (nothing is trained when the dashboard runs):
+Twelve tabs, all reading saved model outputs (nothing is trained when the dashboard runs):
 
 | Tab | What it does |
 |---|---|
@@ -78,6 +78,7 @@ Eleven tabs, all reading saved model outputs (nothing is trained when the dashbo
 | Model Card | What the model is, how it was built, how well it works and where not to trust it |
 | Subgroups | Recall, precision and calibration for groups such as senior citizens, contract types and tenure bands, with 95% intervals |
 | Model Comparison | ROC, precision-recall, calibration and net-benefit curves for all four tuned models, and the rule that picked Logistic Regression |
+| Survival & Value | Kaplan-Meier curves (how long customers stay) by contract, service and payment method, and the expected revenue of an active customer over the next months |
 
 | | |
 |---|---|
@@ -115,11 +116,11 @@ customer-churn-intelligence/
 ├── src/                   config, preprocessing, features, training, tuning, evaluation,
 │                          prediction, explainability, recommendations, business metrics,
 │                          campaign, what-if, batch scoring, upload validation, model card,
-│                          subgroups, model comparison
+│                          subgroups, model comparison, survival
 ├── models/                saved pipeline, metadata, tuning results
 ├── reports/               model evaluation, executive summary, figures
 ├── dashboard/             Streamlit app and one module per tab
-├── tests/                 pytest unit and integration tests (91)
+├── tests/                 pytest unit and integration tests (100)
 └── docs/                  architecture and screenshots
 ```
 
@@ -148,7 +149,7 @@ python -m src.model_evaluation       # evaluate once on the test set, write the 
 python -m src.explainability         # SHAP values, scored customers, figures
 python -m src.ai_recommendations     # retention recommendations (works without an API key)
 python -m src.learning_curve         # does more data help? (optional)
-python -m pytest -q                  # 91 tests
+python -m pytest -q                  # 100 tests
 python -m streamlit run dashboard/app.py
 ```
 
@@ -158,7 +159,7 @@ The EDA lives in `notebooks/01_eda.py` (VS Code cells) and `notebooks/01_eda.ipy
 
 ## Testing and CI
 
-91 tests cover feature engineering, business metrics, risk tiers, recommendation rules, upload validation, what-if options, the campaign simulator, the model card, subgroup metrics, model comparison and integration checks on the real database and saved artifacts (for example, uploading the original dataset must reproduce the saved scores, and the simulator must reproduce the test-set results in `reports/model_evaluation.md`). A GitHub Actions workflow builds the database and runs them on every push.
+100 tests cover feature engineering, business metrics, risk tiers, recommendation rules, upload validation, what-if options, the campaign simulator, the model card, subgroup metrics, model comparison, survival analysis and integration checks on the real database and saved artifacts (for example, uploading the original dataset must reproduce the saved scores, and the simulator must reproduce the test-set results in `reports/model_evaluation.md`). A GitHub Actions workflow builds the database and runs them on every push.
 
 ## Retention recommendations and the optional LLM
 
@@ -181,6 +182,7 @@ API keys are read from environment variables and never stored in code. `.env` is
 ## Limitations
 
 - The data shows associations, not causes. SHAP explains what the model does, not why customers leave.
+- Survival curves use Kaplan-Meier on a dataset whose churn is described as "left within the last month", which does not strictly fit a cohort design, so they are descriptive, not forecasts. Customer value is revenue, not profit, and is not discounted.
 - The dataset is a snapshot. It has no usage logs, complaints or price-change history, so recommendations cannot reference them.
 - Offer cost, success rate and value horizon are assumptions.
 - Scores and revenue at risk on the dashboard are in-sample for the 80% of customers the model trained on, so they are slightly optimistic. The honest numbers are the test-set results above, the Model Card and `reports/model_evaluation.md`.
@@ -190,7 +192,7 @@ API keys are read from environment variables and never stored in code. `.env` is
 
 ## Future improvements
 
-- Survival analysis (when customers churn, not only whether) and a customer lifetime value estimate
+- A survival model that uses each customer's own features (the Survival tab uses group-level curves)
 - Customer segments (clustering) with named personas
 - Uplift modelling to find customers who respond to an offer, not just those likely to leave
 - An A/B test of retention actions to measure the real success rate

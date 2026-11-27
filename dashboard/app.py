@@ -1,14 +1,11 @@
-"""Customer Churn Intelligence dashboard — world-class executive UI.
-
-Run from the project root:  python -m streamlit run dashboard/app.py
-Tip: place the supplied .streamlit/config.toml in your repo so Streamlit's
-default widgets (slider fill, multi-select tags, checkboxes) use cobalt
-instead of the default red primaryColor.
-"""
 """Customer Churn Intelligence dashboard.
 
 Run from the project root:  python -m streamlit run dashboard/app.py
+Tip: place the supplied .streamlit/config.toml in your repo so Streamlit's
+default widgets (slider fill, multi-select tags, checkboxes) use Forest Teal
+(#0D9488) instead of the default red primaryColor.
 """
+
 import sys
 import urllib.parse
 from pathlib import Path
@@ -27,6 +24,8 @@ from dashboard import upload_tab  # noqa: E402
 from dashboard import whatif_tab  # noqa: E402
 from dashboard import subgroups_tab  # noqa: E402
 from dashboard import comparison_tab  # noqa: E402
+from dashboard import survival_tab  # noqa: E402
+
 
 from dashboard.data import load_dashboard_data  # noqa: E402
 from src.ai_recommendations import generate_recommendation, load_env  # noqa: E402
@@ -40,44 +39,49 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
 load_env()
 
 # ============================================================
-# Design system — light alabaster canvas, midnight slate chrome,
-# cobalt primary, semantic risk palette (crimson / amber / teal)
+# Design system — Warm Stone canvas, Rich Charcoal chrome,
+# Forest Teal primary, semantic risk palette (coral / amber / teal)
 # ============================================================
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 :root {
-  --cobalt:#2563EB; --cobalt-d:#1D4ED8; --cobalt-soft:#EFF6FF; --cobalt-edge:#DBEAFE;
-  --slate-900:#0F172A; --slate-800:#1E293B; --slate-700:#334155; --slate-600:#475569;
-  --canvas:#DCE4F2; --surface:#FFFFFF; --surface-2:#F8FAFC; --surface-3:#EAF0FA;
-  --border:#E2E8F0; --border-strong:#CBD5E1;
-  --text:#0F172A; --text-2:#475569; --muted:#64748B; --muted-2:#94A3B8;
+  /* Forest Teal primary. Legacy --cobalt* aliases map to teal so every
+     existing cobalt reference becomes Forest Teal automatically. */
+  --cobalt:#0D9488; --cobalt-d:#0F766E; --cobalt-soft:#CCFBF1; --cobalt-edge:#99F6E4;
+  --teal:#0D9488; --teal-d:#0F766E; --teal-soft:#CCFBF1; --teal-edge:#99F6E4; --emerald:#10B981;
+  /* Rich Charcoal chrome */
+  --charcoal:#18181B; --charcoal-2:#27272A; --charcoal-3:#3F3F46;
+  /* Warm Stone surfaces */
+  --canvas:#F4F3EF; --surface:#FFFFFF; --surface-2:#FAF9F6; --surface-3:#F0EFEB;
+  --border:#E4E4E7; --border-strong:#CBD5E1;
+  --text:#111827; --text-2:#3F3F46; --muted:#52525B; --muted-2:#71717A;
   --crimson:#DC2626; --crimson-d:#B91C1C;
   --amber:#D97706; --amber-d:#B45309;
-  --teal:#0D9488; --teal-d:#0F766E; --emerald:#10B981;
-  --sh-sm:0 1px 2px rgba(15,23,42,.04);
-  --sh:0 1px 3px rgba(15,23,42,.06), 0 4px 12px rgba(15,23,42,.05);
-  --sh-lg:0 12px 32px -12px rgba(15,23,42,.18);
-  --sh-glow:0 8px 24px -8px rgba(37,99,235,.22);
+  --sh-sm:0 1px 2px rgba(24,24,27,.05);
+  --sh:0 1px 3px rgba(24,24,27,.07), 0 4px 12px rgba(24,24,27,.06);
+  --sh-lg:0 12px 32px -12px rgba(24,24,27,.20);
+  --sh-glow:0 8px 24px -8px rgba(13,148,136,.25);
   --r:14px; --r-sm:10px;
 }
 
 /* ---- Canvas + typography ----
-   Visibly tinted cool slate-blue canvas (#DCE4F2) with a cobalt / indigo /
-   teal radial-glow mesh. Applied to EVERY layer that can paint (body, stApp,
-   stAppViewContainer, section[stMain]) with !important so no Streamlit version
-   can leave a white surface — robust on deployed cloud. */
+   Warm Stone canvas (#F4F3EF) with a Forest Teal / amber radial-glow mesh.
+   Applied to EVERY layer that can paint (body, stApp, stAppViewContainer,
+   section[stMain]) with !important so no Streamlit version leaves a white
+   surface — robust on deployed cloud. */
 body, .stApp,
 [data-testid="stAppViewContainer"], .stAppViewContainer,
 section[data-testid="stMain"], [data-testid="stMain"], .main {
   background:
-    radial-gradient(900px 540px at 8% -6%, rgba(37,99,235,.16), transparent 60%),
-    radial-gradient(820px 500px at 105% 6%, rgba(99,102,241,.13), transparent 55%),
-    radial-gradient(720px 470px at 50% 114%, rgba(13,148,136,.11), transparent 60%),
+    radial-gradient(900px 540px at 8% -6%, rgba(13,148,136,.12), transparent 60%),
+    radial-gradient(820px 500px at 105% 6%, rgba(217,119,6,.08), transparent 55%),
+    radial-gradient(720px 470px at 50% 114%, rgba(15,118,110,.10), transparent 60%),
     var(--canvas) !important;
   background-attachment: fixed;
   color: var(--text);
@@ -94,152 +98,233 @@ h1, h2, h3, .hero h1, .sec h3, .sb-head { font-family:'Plus Jakarta Sans','Inter
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:999px;
   border:2px solid transparent; background-clip:padding-box; }
-::-webkit-scrollbar-thumb:hover { background:var(--cobalt); background-clip:padding-box; }
+::-webkit-scrollbar-thumb:hover { background:var(--teal); background-clip:padding-box; }
 
-/* ============ SIDEBAR — deep midnight slate (#0F172A → #1E293B) ============ */
+/* ============ SIDEBAR — Rich Charcoal (#18181B → #27272A) + Forest Teal depth ============ */
 [data-testid="stSidebar"] {
   position:relative;
-  background:linear-gradient(180deg,#090D16 0%, #111827 100%) !important;
+  background:linear-gradient(180deg,#18181B 0%, #27272A 100%) !important;
   border-right:1px solid rgba(255,255,255,.06);
 }
 [data-testid="stSidebar"]::before {
   content:""; position:absolute; inset:0; pointer-events:none;
-  background:radial-gradient(440px 260px at 80% 0%, rgba(37,99,235,.18), transparent 70%);
+  background:radial-gradient(440px 260px at 80% 0%, rgba(15,118,110,.22), transparent 70%);
 }
-[data-testid="stSidebar"] * { color:#E2E8F0; }
+[data-testid="stSidebar"] * { color:#FAFAFA; }
 [data-testid="stSidebar"] .stCaption,
 [data-testid="stSidebar"] small,
-[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { color:#94A3B8 !important; }
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { color:#A1A1AA !important; }
 [data-testid="stSidebar"] label,
-[data-testid="stSidebar"] [data-testid="stWidgetLabel"] { color:#CBD5E1 !important;
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] { color:#E4E4E7 !important;
   font-weight:600; font-size:.82rem; }
 
-/* dark slate input boxes (#1E293B, #F8FAFC text, #334155 border) */
+/* charcoal input boxes (#27272A, #FAFAFA text, #3F3F46 border) */
 [data-testid="stSidebar"] input[type="text"],
 [data-testid="stSidebar"] [data-baseweb="input"] input {
-  background:#1E293B !important; color:#F8FAFC !important;
-  border:1px solid #334155 !important; border-radius:9px; }
+  background:#27272A !important; color:#FAFAFA !important;
+  border:1px solid #3F3F46 !important; border-radius:9px; }
 [data-testid="stSidebar"] input::placeholder,
-[data-testid="stSidebar"] [data-baseweb="input"] input::placeholder { color:#64748B !important; }
+[data-testid="stSidebar"] [data-baseweb="input"] input::placeholder { color:#71717A !important; }
 
-.sb-head { color:#94A3B8 !important; font-size:.72rem; font-weight:700; letter-spacing:.14em;
+.sb-head { color:#A1A1AA !important; font-size:.72rem; font-weight:700; letter-spacing:.14em;
   text-transform:uppercase; margin:.1rem 0 .55rem; display:flex; align-items:center; gap:.55rem;
   font-family:'Plus Jakarta Sans','Inter',sans-serif; }
-.sb-head::before { content:""; width:18px; height:2px; background:var(--cobalt); border-radius:2px; }
+.sb-head::before { content:""; width:18px; height:2px; background:var(--teal); border-radius:2px; }
 
-.sb-badge { display:inline-flex; align-items:center; gap:.4rem; background:var(--cobalt-soft);
-  color:var(--cobalt-d) !important; border:1px solid var(--cobalt-edge); border-radius:999px;
+.sb-badge { display:inline-flex; align-items:center; gap:.4rem; background:var(--teal-soft);
+  color:var(--teal-d) !important; border:1px solid var(--teal-edge); border-radius:999px;
   padding:.3rem .8rem; font-size:.76rem; font-weight:600; margin-top:.55rem; }
-.sb-badge b { color:var(--cobalt-d) !important; font-size:.9rem; }
+.sb-badge b { color:var(--teal-d) !important; font-size:.9rem; }
 
-/* model status — emerald-tint pill, single line, no clip */
+/* model status — teal-tint pill, single line, no clip */
 .sb-status {
   display:inline-flex; align-items:center; gap:.4rem; margin-top:.7rem;
-  background:rgba(16,185,129,.14); border:1px solid rgba(52,211,153,.35);
+  background:rgba(13,148,136,.18); border:1px solid rgba(20,184,166,.40);
   border-radius:999px; padding:.32rem .75rem; white-space:nowrap; max-width:100%;
 }
-.sb-dot { width:7px; height:7px; border-radius:50%; background:#34D399;
-  box-shadow:0 0 0 3px rgba(52,211,153,.22); flex-shrink:0; }
-.sb-status .t { color:#6EE7B7 !important; font-size:.76rem; font-weight:600; line-height:1.3; }
-.sb-status .t b { color:#A7F3D0 !important; font-variant-numeric:tabular-nums; }
+.sb-dot { width:7px; height:7px; border-radius:50%; background:#2DD4BF;
+  box-shadow:0 0 0 3px rgba(45,212,191,.24); flex-shrink:0; }
+.sb-status .t { color:#5EEAD4 !important; font-size:.76rem; font-weight:600; line-height:1.3; }
+.sb-status .t b { color:#99F6E4 !important; font-variant-numeric:tabular-nums; }
 
-/* select / multiselect containers — dark translucent slate (#1E293B + #334155) */
-[data-testid="stSidebar"] [data-baseweb="select"] > div,
-[data-testid="stSidebar"] [data-baseweb="multiselect"] > div {
-  background:#1E293B !important; border:1px solid #334155 !important; border-radius:9px; }
-/* closed selectbox / multiselect value text — light on dark (bulletproof) */
-[data-testid="stSidebar"] [data-baseweb="select"] > div > div,
-[data-testid="stSidebar"] [data-baseweb="multiselect"] > div > div,
-[data-testid="stSidebar"] [data-baseweb="select"] [role="combobox"],
-[data-testid="stSidebar"] [data-baseweb="multiselect"] [role="combobox"],
-[data-testid="stSidebar"] [data-baseweb="select"] input,
-[data-testid="stSidebar"] [data-baseweb="multiselect"] input { color:#F8FAFC !important; }
-[data-testid="stSidebar"] [data-baseweb="select"] svg,
-[data-testid="stSidebar"] [data-baseweb="multiselect"] svg { fill:#94A3B8 !important; color:#94A3B8 !important; }
+/* ============ STRICT select / multiselect / dropdown visibility ============
+   EVERY selectbox, multiselect and search/pick dropdown — sidebar AND main
+   (incl. the "Compare by"/Contract picker, What-if "Contract"/"Payment
+   method", customer picker, "Internet service") — uses a crisp WHITE control
+   (#FFFFFF) with #CBD5E1 border and DARK #111827 text + #111827 arrow. No
+   dark background behind options. Targets BOTH the Streamlit widget wrappers
+   (stSelectbox / stMultiSelect) AND the inner BaseWeb select nodes, so no
+   Streamlit version can leave a dark control. The teal slider, headings and
+   other chrome below are NOT touched. */
 
-/* open dropdown menu (popover) — dark slate with WHITE option text.
-   The popover renders in a portal outside the sidebar; a dark menu (#1E293B)
-   with white text matches the chrome and keeps options readable everywhere
-   (incl. the What-if tab). The "*" + !important guarantees no baseweb class
-   can paint option text black (which was making options invisible). */
-[data-baseweb="menu"] { background:#1E293B !important; border:1px solid #334155 !important;
-  border-radius:10px !important; box-shadow:0 8px 24px rgba(0,0,0,.35) !important; }
-[data-baseweb="menu"] * { color:#FFFFFF !important; }
-[data-baseweb="menu"] li:hover,
-[data-baseweb="menu"] li[aria-selected="true"] { background:rgba(37,99,235,.28) !important; }
+/* 1. control surface — white bg, dark text, light border (wrapper + baseweb) */
+[data-testid="stSelectbox"] > div > div,
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+[data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
+[data-baseweb="select"] > div,
+[data-baseweb="multiselect"] > div {
+  background-color:#FFFFFF !important; color:#111827 !important;
+  border:1px solid #CBD5E1 !important; border-radius:9px; }
 
-/* ACTIVE filter chips — indigo pills (#1D4ED8 bg, #DBEAFE text). NEVER red. */
-[data-testid="stSidebar"] [data-baseweb="tag"] {
-  background:#1D4ED8 !important; border:1px solid #1D4ED8 !important; border-radius:999px; }
+/* closed value / combobox / input text — dark */
+[data-testid="stSelectbox"] [role="combobox"],
+[data-testid="stMultiSelect"] [role="combobox"],
+[data-testid="stSelectbox"] input,
+[data-testid="stMultiSelect"] input,
+[data-baseweb="select"] > div > div,
+[data-baseweb="multiselect"] > div > div,
+[data-baseweb="select"] [role="combobox"],
+[data-baseweb="multiselect"] [role="combobox"],
+[data-baseweb="select"] input,
+[data-baseweb="multiselect"] input { color:#111827 !important; }
+[data-testid="stSelectbox"] input::placeholder,
+[data-testid="stMultiSelect"] input::placeholder,
+[data-baseweb="select"] input::placeholder,
+[data-baseweb="multiselect"] input::placeholder { color:#71717A !important; }
+
+/* 2. inner value spans + dropdown arrows/SVGs — dark fill (100% visible) */
+[data-testid="stSelectbox"] span,
+[data-testid="stMultiSelect"] span,
+[data-testid="stSelectbox"] svg,
+[data-testid="stMultiSelect"] svg,
+[data-baseweb="select"] svg,
+[data-baseweb="multiselect"] svg {
+  color:#111827 !important; fill:#111827 !important; }
+
+/* teal focus ring on the open control (accent only — surface stays white) */
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
+[data-testid="stMultiSelect"] div[data-baseweb="select"] > div:focus-within,
+[data-baseweb="select"] > div:focus-within,
+[data-baseweb="multiselect"] > div:focus-within {
+  border-color:var(--teal) !important; box-shadow:0 0 0 3px rgba(13,148,136,.20) !important; }
+
+/* 3. open dropdown menu (popover portal) — crisp WHITE with dark text.
+   Renders in a detached portal outside sidebar/main DOM, so it MUST be styled
+   globally across popover / listbox / option. White surface, dark #111827
+   text, teal hover (#F0FDFA bg / #0F766E text); the keyboard-highlighted
+   option stays solid teal (#0D9488 / white) for clear nav. Options are NEVER
+   hidden on a dark background — sidebar, What-if or Compare-by alike. */
+div[data-baseweb="popover"],
+[data-baseweb="menu"],
+ul[role="listbox"] { background-color:#FFFFFF !important; color:#111827 !important;
+  border:1px solid #CBD5E1 !important; border-radius:10px !important;
+  box-shadow:0 8px 24px rgba(24,24,27,.16) !important; }
+[data-baseweb="menu"] *,
+li[role="option"] { color:#111827 !important; }
+li[role="option"]:hover,
+[data-baseweb="menu"] li:hover { background-color:#F0FDFA !important; color:#0F766E !important; }
+li[role="option"][aria-selected="true"],
+[data-baseweb="menu"] li[aria-selected="true"] { background-color:#0D9488 !important; color:#FFFFFF !important; }
+
+/* ACTIVE filter tags (multiselect chips) — soft teal pills (#CCFBF1 bg,
+   #0F766E text, dark #111827 remove icon). Nothing dark-blocked or clipped. */
+[data-testid="stSidebar"] [data-baseweb="tag"],
+[data-baseweb="tag"] {
+  background:#CCFBF1 !important; border:1px solid #99F6E4 !important; border-radius:999px; }
 [data-testid="stSidebar"] [data-baseweb="tag"] span,
-[data-testid="stSidebar"] [data-baseweb="tag"] svg {
-  color:#DBEAFE !important; fill:#DBEAFE !important; }
+[data-testid="stSidebar"] [data-baseweb="tag"] svg,
+[data-baseweb="tag"] span, [data-baseweb="tag"] svg {
+  color:#0F766E !important; fill:#111827 !important; }
 
-/* slider thumb — cobalt (fill colour comes from config.toml primaryColor) */
+/* slider thumb — Forest Teal (fill colour comes from config.toml primaryColor) */
 [data-testid="stSidebar"] [data-baseweb="slider"] [role="slider"] {
-  background:#fff; border:3px solid var(--cobalt); box-shadow:0 2px 8px rgba(37,99,235,.4); }
+  background:#fff; border:3px solid var(--teal); box-shadow:0 2px 8px rgba(13,148,136,.4); }
 
-/* checkbox / switch accent — cobalt */
-input[type="checkbox"] { accent-color:var(--cobalt); }
-[role="switch"][aria-checked="true"] > div { background:var(--cobalt) !important; }
+/* checkbox / switch accent — Forest Teal */
+input[type="checkbox"] { accent-color:var(--teal); }
+[role="switch"][aria-checked="true"] > div { background:var(--teal) !important; }
+
+/* ============ SIDEBAR vertical NAVIGATION (st.radio → nav menu) ============
+   The 12 pages live here as full-width, wrapping items so every label (incl.
+   "Survival & Value") is fully visible — never clipped. Active page = soft
+   teal tint + crisp white text + teal left accent bar; inactive = silver
+   (#CBD5E1) with a subtle hover. The radio circle is hidden for a clean list. */
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] {
+  display:flex; flex-direction:column; gap:.1rem; width:100%; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+  display:flex; align-items:center; gap:.5rem; width:100%;
+  padding:.34rem .6rem; border-radius:8px; cursor:pointer;
+  white-space:normal; word-break:break-word; line-height:1.2;
+  border:1px solid transparent; border-left:3px solid transparent;
+  margin:0; transition:background .15s ease, color .15s ease, border-color .15s ease; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label,
+[data-testid="stSidebar"] [data-testid="stRadio"] label * {
+  color:#CBD5E1 !important; font-size:.8rem; font-weight:500; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+  background:rgba(255,255,255,.06); }
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover,
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover * {
+  color:#FFFFFF !important; }
+/* ACTIVE page — soft teal tint + crisp white text + teal left accent bar */
+[data-testid="stSidebar"] [data-testid="stRadio"] label[aria-checked="true"],
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has([aria-checked="true"]) {
+  background:rgba(13,148,136,.22) !important; border-left:3px solid #0D9488 !important; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label[aria-checked="true"],
+[data-testid="stSidebar"] [data-testid="stRadio"] label[aria-checked="true"] *,
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has([aria-checked="true"]),
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has([aria-checked="true"]) * {
+  color:#FFFFFF !important; font-weight:600; }
+/* hide the radio circle for a clean nav look (keyboard a11y stays) */
+[data-testid="stSidebar"] [data-testid="stRadio"] label [data-baseweb="radio"],
+[data-testid="stSidebar"] [data-testid="stRadio"] label input[type="radio"] { display:none !important; }
 
 /* ============ HERO — compact, glassmorphic icon, export button ============ */
 .hero {
   position:relative; overflow:hidden; display:flex; align-items:center;
   justify-content:space-between; gap:1.2rem;
-  background:linear-gradient(120deg,#0F172A 0%, #1E293B 100%);
-  color:#fff; padding:1.35rem 1.7rem; border-radius:18px; margin-bottom:1rem; box-shadow:var(--sh-lg);
+  background:linear-gradient(120deg,#18181B 0%, #27272A 100%);
+  color:#FAFAFA; padding:1.35rem 1.7rem; border-radius:18px; margin-bottom:1rem; box-shadow:var(--sh-lg);
 }
 .hero::after {
   content:""; position:absolute; right:-90px; top:-90px; width:300px; height:300px;
-  background:radial-gradient(closest-side, rgba(37,99,235,.28), transparent 70%); pointer-events:none; }
+  background:radial-gradient(closest-side, rgba(15,118,110,.32), transparent 70%); pointer-events:none; }
 .hero-main { display:flex; align-items:center; gap:1rem; position:relative; z-index:1; min-width:0; }
 .hero-icon {
   width:46px; height:46px; flex-shrink:0; border-radius:13px;
   background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
-  backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; color:#fff;
+  backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; color:#FAFAFA;
 }
 .hero-icon svg { width:24px; height:24px; }
 .hero-text { min-width:0; }
-.hero h1 { margin:0; font-size:1.6rem; color:#fff; letter-spacing:-.02em; font-weight:700; }
+.hero h1 { margin:0; font-size:1.6rem; color:#FAFAFA; letter-spacing:-.02em; font-weight:700; }
 .hero p { margin:.4rem 0 0; opacity:.82; font-size:.9rem; max-width:760px; line-height:1.45; }
 .hero .pills { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.85rem; }
 .hero .pill { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14);
   backdrop-filter:blur(6px); padding:.28rem .75rem; border-radius:999px;
-  font-size:.74rem; font-weight:600; color:#CBD5E1; }
-.hero .pill b { color:#fff; font-weight:700; }
+  font-size:.74rem; font-weight:600; color:#D4D4D8; }
+.hero .pill b { color:#FAFAFA; font-weight:700; }
 .hero-export {
   flex-shrink:0; position:relative; z-index:1; display:inline-flex; align-items:center; gap:.45rem;
   background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.22); backdrop-filter:blur(8px);
-  color:#fff !important; font-size:.82rem; font-weight:600; padding:.55rem .95rem; border-radius:10px;
+  color:#FAFAFA !important; font-size:.82rem; font-weight:600; padding:.55rem .95rem; border-radius:10px;
   text-decoration:none; transition:all .18s ease; cursor:pointer;
 }
 .hero-export:hover { background:rgba(255,255,255,.18); transform:translateY(-1px); }
 .hero-export svg { width:16px; height:16px; }
 
-/* ============ TABS — clean text, white pill active, cobalt text/icon ============ */
+/* ============ TABS — clean text, white pill active, teal text/icon ============ */
 .stTabs [data-baseweb="tab-list"] {
   gap:.3rem; border-bottom:1px solid var(--border); background:transparent;
-  padding:.3rem 0; margin-bottom:.9rem; }
+  padding:.3rem 0; margin-bottom:.9rem; overflow-x:auto; flex-wrap:nowrap; }
 .stTabs [data-baseweb="tab"] {
   background:transparent; border-radius:8px; padding:.5rem .9rem;
   font-weight:600; font-size:.84rem; color:var(--muted); height:auto;
-  transition:all .18s ease; white-space:nowrap; border:1px solid transparent; }
-.stTabs [data-baseweb="tab"]:hover { background:rgba(37,99,235,.06); color:var(--cobalt); }
+  transition:all .18s ease; white-space:nowrap; border:1px solid transparent; flex-shrink:0; }
+.stTabs [data-baseweb="tab"]:hover { background:rgba(13,148,136,.08); color:var(--teal); }
 .stTabs [aria-selected="true"] {
-  background:#FFFFFF !important; color:var(--cobalt) !important;
+  background:#FFFFFF !important; color:var(--teal) !important;
   border:1px solid var(--border) !important;
-  box-shadow:0 1px 2px rgba(15,23,42,.06), 0 4px 12px -4px rgba(37,99,235,.16) !important; }
+  box-shadow:0 1px 2px rgba(24,24,27,.06), 0 4px 12px -4px rgba(13,148,136,.18) !important; }
 .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display:none; }
 
-/* ============ KPI cards — Nordic Slate: crisp white + soft top sheen ============
-   Unified #FFFFFF surface with a subtle #F8FAFC top sheen and 1px #E2E8F0 border
-   on ALL cards. The 5 Portfolio cards are differentiated ONLY by their icon
-   badge + bottom insight pill (accent colors set per-card via --c / --c2).
-   Text stays fully dark & legible: #0F172A numbers, #475569 labels, #64748B sub. */
+/* ============ KPI cards — Warm Stone: crisp white + soft warm sheen ============
+   Unified #FFFFFF surface with a subtle #FAF9F6 warm top sheen and 1px #E4E4E7
+   border on ALL cards. The 5 Portfolio cards are differentiated ONLY by their
+   icon badge + bottom insight pill (accent colors set per-card via --c / --c2).
+   Text stays fully dark & legible: #111827 numbers, #3F3F46 labels, #52525B sub. */
 .kpi {
-  position:relative; background:linear-gradient(180deg,#F8FAFC 0%,#FFFFFF 34%);
-  border:1px solid #E2E8F0; border-radius:var(--r); padding:.95rem 1rem .9rem;
+  position:relative; background:linear-gradient(180deg,#FAF9F6 0%,#FFFFFF 34%);
+  border:1px solid #E4E4E7; border-radius:var(--r); padding:.95rem 1rem .9rem;
   box-shadow:var(--sh); transition:transform .2s ease, box-shadow .2s ease; height:100%;
 }
 .kpi:hover { transform:translateY(-3px); box-shadow:var(--sh-lg); }
@@ -247,27 +332,27 @@ input[type="checkbox"] { accent-color:var(--cobalt); }
   justify-content:center; margin-bottom:.6rem; color:var(--c);
   background:color-mix(in srgb, var(--c) 13%, #FFFFFF); }
 .kpi .ic svg { width:18px; height:18px; }
-.kpi .l { font-size:.68rem; color:#475569; text-transform:uppercase;
+.kpi .l { font-size:.68rem; color:#3F3F46; text-transform:uppercase;
   letter-spacing:.06em; font-weight:600; }
-.kpi .v { font-size:1.7rem; font-weight:700; color:#0F172A; line-height:1.1;
+.kpi .v { font-size:1.7rem; font-weight:700; color:#111827; line-height:1.1;
   margin-top:.15rem; letter-spacing:-.01em; }
-.kpi .s { font-size:.73rem; color:#64748B; margin-top:.2rem; }
+.kpi .s { font-size:.73rem; color:#52525B; margin-top:.2rem; }
 .kpi .insight { display:inline-block; margin-top:.55rem; font-size:.7rem; font-weight:600;
   color:var(--c2); background:color-mix(in srgb, var(--c) 9%, #FFFFFF);
-  border:1px solid color-mix(in srgb, var(--c) 22%, #E2E8F0);
+  border:1px solid color-mix(in srgb, var(--c) 22%, #E4E4E7);
   border-radius:999px; padding:.18rem .55rem; }
 
-/* ============ Section header — single cobalt accent, sharp title ============ */
+/* ============ Section header — single teal accent, sharp title ============ */
 .sec { display:flex; align-items:center; gap:.6rem; margin:1.5rem 0 .55rem; }
-.sec .bar { width:3px; height:18px; border-radius:3px; background:var(--cobalt); flex-shrink:0; }
-.sec h3 { margin:0; font-size:16px; color:#0F172A; font-weight:600; line-height:1.25; letter-spacing:-.01em; }
-.sec span { font-size:13px; color:#64748B; }
+.sec .bar { width:3px; height:18px; border-radius:3px; background:var(--teal); flex-shrink:0; }
+.sec h3 { margin:0; font-size:16px; color:#111827; font-weight:600; line-height:1.25; letter-spacing:-.01em; }
+.sec span { font-size:13px; color:#52525B; }
 
 /* ============ Chart cards ============ */
-[data-testid="stPlotlyChart"] { background:#F1F5F9; border:1px solid #CBD5E1;
+[data-testid="stPlotlyChart"] { background:#FFFFFF; border:1px solid #E4E4E7;
   border-radius:var(--r); padding:.55rem .6rem .5rem; box-shadow:var(--sh-sm);
   transition:box-shadow .2s ease, transform .2s ease; }
-[data-testid="stPlotlyChart"]:hover { box-shadow:0 4px 14px -6px rgba(15,23,42,.14); transform:translateY(-1px); }
+[data-testid="stPlotlyChart"]:hover { box-shadow:0 4px 14px -6px rgba(24,24,27,.16); transform:translateY(-1px); }
 
 /* ============ Dataframe ============ */
 [data-testid="stDataFrame"] { border:1px solid var(--border); border-radius:var(--r);
@@ -278,25 +363,25 @@ input[type="checkbox"] { accent-color:var(--cobalt); }
 .badge { display:inline-block; padding:.26rem .8rem; border-radius:999px; color:#fff;
   font-weight:600; font-size:.78rem; vertical-align:middle; letter-spacing:.01em; }
 .pill-chip { display:inline-block; padding:.2rem .65rem; border-radius:999px; font-size:.73rem;
-  font-weight:600; background:var(--cobalt-soft); color:var(--cobalt-d); border:1px solid var(--cobalt-edge); }
+  font-weight:600; background:var(--teal-soft); color:var(--teal-d); border:1px solid var(--teal-edge); }
 .driver { display:flex; align-items:flex-start; gap:.5rem; padding:.5rem .75rem; border-radius:9px;
   background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--dc);
   margin-bottom:.35rem; font-size:.88rem; color:var(--text); }
 .driver .m { color:var(--dc); display:flex; align-items:center; flex-shrink:0; }
 .driver .m svg { width:15px; height:15px; }
 
-/* ============ Buttons — cobalt ============ */
+/* ============ Buttons — Forest Teal ============ */
 .stDownloadButton > button, .stButton > button {
-  background:var(--cobalt) !important; color:#fff !important;
-  border:1px solid var(--cobalt) !important; border-radius:9px !important; font-weight:600 !important;
-  padding:.5rem 1.05rem !important; box-shadow:0 1px 2px rgba(37,99,235,.2) !important;
+  background:var(--teal) !important; color:#fff !important;
+  border:1px solid var(--teal) !important; border-radius:9px !important; font-weight:600 !important;
+  padding:.5rem 1.05rem !important; box-shadow:0 1px 2px rgba(13,148,136,.22) !important;
   transition:all .15s !important; }
-.stDownloadButton > button:hover, .stButton > button:hover { background:var(--cobalt-d) !important; transform:translateY(-1px); }
+.stDownloadButton > button:hover, .stButton > button:hover { background:var(--teal-d) !important; transform:translateY(-1px); }
 
 /* ============ Alerts ============ */
 [data-testid="stAlertContainer"] { border-radius:var(--r) !important;
-  border-left:4px solid var(--cobalt) !important; }
-[data-testid="stAlertContainerInfo"] { border-left-color:var(--cobalt) !important; }
+  border-left:4px solid var(--teal) !important; }
+[data-testid="stAlertContainerInfo"] { border-left-color:var(--teal) !important; }
 [data-testid="stAlertContainerWarning"] { border-left-color:var(--amber) !important; }
 [data-testid="stAlertContainerError"] { border-left-color:var(--crimson) !important; }
 [data-testid="stAlertContainerSuccess"] { border-left-color:var(--teal) !important; }
@@ -315,8 +400,8 @@ hr, [data-testid="stDivider"] { border-color:var(--border) !important; }
 @keyframes _fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
 .block-container > div { animation:_fadeIn .4s ease both; }
 
-/* main-area slider (What-if) — cobalt thumb */
-[data-baseweb="slider"] [role="slider"] { background:var(--cobalt); border:2px solid var(--surface); }
+/* main-area slider (What-if) — Forest Teal thumb */
+[data-baseweb="slider"] [role="slider"] { background:var(--teal); border:2px solid var(--surface); }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -349,11 +434,10 @@ ICON_ARROW_DOWN = (f'<svg viewBox="0 0 24 24" {_SVG}><line x1="12" y1="5" x2="12
 
 # ---------- Small helpers ----------
 def show(fig) -> None:
-    """Plotly chart: Nordic Slate polish — transparent paper (Soft Cool Ice-Tint
-    #F1F5F9 card shows), gentle cool plot canvas (#E6ECF5) on cartesian charts
-    with clean light #F8FAFC gridlines, dark Inter text (#0F172A titles,
-    #1E293B ticks/legend), crisp 2px white segment borders on donut/treemap.
-    Version-robust rendering."""
+    """Plotly chart: Warm Stone polish — transparent paper (white #FFFFFF card
+    shows), warm plot canvas (#FAF9F6) on cartesian charts with clean light
+    #E8E8EA gridlines, dark Inter text (#111827 titles, #3F3F46 ticks/legend),
+    crisp 2px white segment borders on donut/treemap. Version-robust rendering."""
     _CART = {"scatter", "scattergl", "bar", "histogram", "histogram2d",
              "histogram2dcontour", "box", "violin", "heatmap", "contour",
              "waterfall", "ohlc", "candlestick"}
@@ -361,24 +445,24 @@ def show(fig) -> None:
     try:
         fig.update_layout(
             paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="#E6ECF5" if _is_cart else "rgba(0,0,0,0)",
-            font=dict(family="Inter, sans-serif", color="#0F172A", size=12),
+            plot_bgcolor="#FAF9F6" if _is_cart else "rgba(0,0,0,0)",
+            font=dict(family="Inter, sans-serif", color="#111827", size=12),
             margin=dict(l=10, r=16, t=50, b=10),
             title_font=dict(family="Plus Jakarta Sans, Inter, sans-serif",
-                            color="#0F172A", size=14),
-            legend=dict(font=dict(color="#1E293B", size=11),
+                            color="#111827", size=14),
+            legend=dict(font=dict(color="#3F3F46", size=11),
                         bgcolor="rgba(0,0,0,0)", itemsizing="constant",
                         itemwidth=24, borderwidth=0),
         )
         if _is_cart:
-            fig.update_xaxes(gridcolor="#F8FAFC", zerolinecolor="#F8FAFC",
+            fig.update_xaxes(gridcolor="#E8E8EA", zerolinecolor="#E8E8EA",
                              linecolor="#CBD5E1",
-                             tickfont=dict(color="#1E293B", size=11),
-                             title_font=dict(color="#0F172A", size=12))
-            fig.update_yaxes(gridcolor="#F8FAFC", zerolinecolor="#F8FAFC",
+                             tickfont=dict(color="#3F3F46", size=11),
+                             title_font=dict(color="#111827", size=12))
+            fig.update_yaxes(gridcolor="#E8E8EA", zerolinecolor="#E8E8EA",
                              linecolor="#CBD5E1",
-                             tickfont=dict(color="#1E293B", size=11),
-                             title_font=dict(color="#0F172A", size=12))
+                             tickfont=dict(color="#3F3F46", size=11),
+                             title_font=dict(color="#111827", size=12))
         for _tr in fig.data:
             if getattr(_tr, "type", None) in ("treemap", "pie", "sunburst"):
                 _tr.marker.line.width = 2
@@ -460,6 +544,15 @@ MEDIUM_T, HIGH_T = meta["risk_thresholds"]["medium"], meta["risk_thresholds"]["h
 X_all = build_features_frame(data)
 
 # ---------- Sidebar ----------
+# Navigation first (top of sidebar) — primary access without scrolling.
+sb_head("Navigation")
+PAGES = ["Executive Overview", "Customer Analytics", "Churn Prediction",
+         "Explainable AI", "AI Retention Advisor", "Upload & Score",
+         "What-if", "Campaign", "Model Card", "Subgroups",
+         "Model Comparison", "Survival & Value"]
+page = st.sidebar.radio("nav", PAGES, label_visibility="collapsed", key="nav_page")
+
+st.sidebar.divider()
 sb_head("Filters")
 contracts = st.sidebar.multiselect("Contract", sorted(data["contract"].unique()),
                                    default=sorted(data["contract"].unique()))
@@ -485,6 +578,8 @@ chosen = typed if typed else st.sidebar.selectbox("...or pick (highest risk firs
 if chosen not in set(data["customer_id"]):
     st.sidebar.error(f"Customer '{chosen}' not found.")
     st.stop()
+
+# model status badge pinned at the bottom of the sidebar
 sb_status(f"Model Ready · <b>{model_abbr(meta['model_name'])}</b> (θ = <b>{meta['threshold']:.2f}</b>)")
 
 # ---------- Hero (with Export Report) ----------
@@ -511,10 +606,9 @@ st.markdown(
     f'{ICON_EXPORT}<span>Export Report</span></a>'
     f'</div>', unsafe_allow_html=True)
 
-tab_a, tab_b, tab_c, tab_d, tab_e, tab_f, tab_g, tab_h, tab_i, tab_j, tab_k = st.tabs(
-    ["Executive Overview", "Customer Analytics", "Churn Prediction",
-     "Explainable AI", "AI Retention Advisor", "Upload & Score",
-     "What-if", "Campaign", "Model Card", "Subgroups", "Model Comparison"])
+# Top horizontal tab bar removed — the 12 pages are now vertical sidebar
+# navigation (the "NAVIGATION" radio above). Each section below is gated on
+# `page`, so only the active page renders (cleaner, no clipped top tab row).
 
 
 def customer_facts(customer_id: str) -> dict:
@@ -548,7 +642,7 @@ def public(facts: dict) -> dict:
 
 
 # ---------- A. Executive Overview ----------
-with tab_a:
+if page == "Executive Overview":
     section("Portfolio snapshot", "Active customers in the current filter")
     _churned = int(filtered["churn"].sum())
     _churn_rate = 100 * filtered["churn"].mean()
@@ -559,15 +653,15 @@ with tab_a:
     _avg_rev = _rev_at_risk / max(_high_risk, 1)
     k = st.columns(5)
     kpi(k[0], "Total customers", f"{len(filtered):,}", "in current filter",
-        "#2563EB", ICON_USERS, "#1D4ED8", insight=f"{_pct_base:.0f}% of full base")
+        "#0D9488", ICON_USERS, "#0F766E", insight=f"{_pct_base:.0f}% of full base")
     kpi(k[1], "Churned", f"{_churned:,}", "already left",
-        "#E11D48", ICON_LOGOUT, "#BE123C", insight=f"{_churn_rate:.1f}% of segment")
+        "#DC2626", ICON_LOGOUT, "#B91C1C", insight=f"{_churn_rate:.1f}% of segment")
     kpi(k[2], "Churn rate", f"{_churn_rate:.1f}%", "churned / total",
         "#D97706", ICON_TREND_DOWN, "#B45309", insight=f"{_churned:,} customers lost")
     kpi(k[3], "High-risk active", f"{_high_risk:,}", "can still be retained",
         "#DC2626", ICON_FLAME, "#B91C1C", insight=f"{_high_risk_share:.1f}% of active base")
     kpi(k[4], "Revenue at risk", f"${_rev_at_risk:,.0f}", "monthly, probability x charge",
-        "#EA580C", ICON_DOLLAR, "#C2410C", insight=f"Avg ${_avg_rev:.2f} / high-risk user")
+        "#D97706", ICON_DOLLAR, "#B45309", insight=f"Avg ${_avg_rev:.2f} / high-risk user")
     st.caption("High-risk and revenue at risk cover ACTIVE customers. Scores for customers the "
                "model was trained on are slightly optimistic.")
     section("Risk & revenue mix", "Where the exposure concentrates")
@@ -586,7 +680,7 @@ with tab_a:
                "(the honest test-set result is in reports/model_evaluation.md).")
 
 # ---------- B. Customer Analytics ----------
-with tab_b:
+if page == "Customer Analytics":
     section("Distribution & segments", "How churn spreads across the base")
     c1, c2 = st.columns(2)
     with c1:
@@ -610,7 +704,7 @@ with tab_b:
 # ---------- C. Churn Prediction ----------
 facts = customer_facts(chosen)
 risk_color = {"High": "#DC2626", "Medium": "#D97706", "Low": "#0D9488"}[facts["risk_level"]]
-with tab_c:
+if page == "Churn Prediction":
     st.markdown(f"### Customer {chosen} "
                 f'<span class="badge" style="background:{risk_color}">{facts["risk_level"]} risk</span>',
                 unsafe_allow_html=True)
@@ -621,7 +715,7 @@ with tab_c:
     with right:
         m1, m2 = st.columns(2)
         kpi(m1, "Monthly charge", f"${facts['monthly_charges']:,.2f}", "current bill",
-            "#2563EB", ICON_CARD, "#1D4ED8",
+            "#0D9488", ICON_CARD, "#0F766E",
             insight=f"{facts['profile']['contract']} · {facts['profile']['tenure_months']}mo tenure")
         kpi(m2, "Revenue at risk", f"${facts['revenue_at_risk']:,.2f}", "per month, estimate",
             "#DC2626", ICON_DOLLAR, "#B91C1C",
@@ -640,7 +734,7 @@ with tab_c:
         st.info("This customer has already churned in the dataset.")
 
 # ---------- D. Explainable AI ----------
-with tab_d:
+if page == "Explainable AI":
     section("Global vs local drivers", "Model-wide importance versus this customer")
     left, right = st.columns(2)
     with left:
@@ -652,7 +746,7 @@ with tab_d:
                f"Right chart: customer {chosen}.")
 
 # ---------- E. AI Retention Advisor ----------
-with tab_e:
+if page == "AI Retention Advisor":
     section("Recommendation", f"Personalised retention plan for {chosen}")
     use_llm = st.checkbox("Use LLM if an API key is configured", value=True)
     rec = generate_recommendation(public(facts), use_llm)
@@ -678,32 +772,37 @@ with tab_e:
         st.download_button("⬇ Download recommendation report (CSV)", report.to_csv(index=False),
                            file_name="retention_recommendations.csv", mime="text/csv")
 
-st.markdown(f'<div class="foot">Model: <b>{meta["model_name"]}</b> · threshold <b>{meta["threshold"]:.2f}</b> · '
-            'Business assumptions (offer cost, success rate) are estimates, not dataset facts · '
-            'Associations, not causes</div>', unsafe_allow_html=True)
-
 
 # ---------- F. Upload & Score ----------
-with tab_f:
+if page == "Upload & Score":
     upload_tab.render()
 
 
 # ---------- G. What-if ----------
-with tab_g:
+if page == "What-if":
     whatif_tab.render(data, chosen)
 
 # ---------- H. Campaign simulator ----------
-with tab_h:
+if page == "Campaign":
     campaign_tab.render(data, meta)
 
 # ---------- I. Model card ----------
-with tab_i:
+if page == "Model Card":
     model_card_tab.render(data, meta)
 
 # ---------- J. Subgroups ----------
-with tab_j:
+if page == "Subgroups":
     subgroups_tab.render(data, meta)
 
 # ---------- K. Model comparison ----------
-with tab_k:
+if page == "Model Comparison":
     comparison_tab.render(meta)
+
+# ---------- L. Survival & value ----------
+if page == "Survival & Value":
+    survival_tab.render(data, chosen)
+
+# ---------- Footer (always at the bottom of the main canvas) ----------
+st.markdown(f'<div class="foot">Model: <b>{meta["model_name"]}</b> · threshold <b>{meta["threshold"]:.2f}</b> · '
+            'Business assumptions (offer cost, success rate) are estimates, not dataset facts · '
+            'Associations, not causes</div>', unsafe_allow_html=True)
